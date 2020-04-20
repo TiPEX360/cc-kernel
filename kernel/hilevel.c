@@ -8,13 +8,7 @@
 #include "hilevel.h"
 
 pcb_t procTab[MAX_PROCS]; 
-pcb_t* executing = NULL;
-
-extern uint32_t* tos_P1;
-extern void main_P1;
-extern uint32_t* tos_P2;
-extern void main_P2;
-pcb_t* top = NULL;
+pcb_t *executing = NULL;
 
 void dispatch(ctx_t* ctx, pcb_t* prev, pcb_t* next) {
   char prev_pid = '?', next_pid = '?';
@@ -40,26 +34,62 @@ void dispatch(ctx_t* ctx, pcb_t* prev, pcb_t* next) {
   return;
 }
 
+
+extern uint32_t* tos_P1;
+extern void main_P1;
+extern uint32_t* tos_P2;
+extern void main_P2;
+
 void schedule(ctx_t* ctx) {
-  if(executing->pid == procTab[0].pid) {
-    dispatch(ctx, &procTab[0], &procTab[1]);  // context switch P_1 -> P_2
+  //Adjust current process priority
+  if(executing->priority != executing->initPriority) executing->priority = executing->initPriority;
 
-    procTab[0].status = STATUS_READY;             // update   execution status  of P_1 
-    procTab[1].status = STATUS_EXECUTING;         // update   execution status  of P_2
-  }
-  else if(executing->pid == procTab[1].pid) {
-    dispatch(ctx, &procTab[1], &procTab[0]);  // context switch P_2 -> P_1
+  //Get next priority process
+  pcb_t* next = executing;
 
-    procTab[1].status = STATUS_READY;             // update   execution status  of P_2
-    procTab[0].status = STATUS_EXECUTING;         // update   execution status  of P_1
+  for (int i = 0; i < MAX_PROCS; i++) {
+    if(procTab[i].status == STATUS_READY && procTab[i].pid != executing->pid) {
+      if(procTab[i].priority > next->priority) next = &procTab[i];
+      else procTab[i].priority++; //Adjust skipped process priority 
+    }
   }
+
+  //Dispatch and update status
+  pcb_t* prev = executing;
+  dispatch(ctx, prev, next);
+  prev->status = STATUS_READY;
+  next->status = STATUS_EXECUTING;
 
   return;
 }
 
 void hilevel_handler_rst(ctx_t* ctx) {
-  top = malloc(sizeof(pcb_t*) * 2);
-  
+  //Set up pcb vector
+  for( int i = 0; i < MAX_PROCS; i++ ) {
+    procTab[ i ].status = STATUS_INVALID;
+  }
+
+  memset(&procTab[0], 0, sizeof(pcb_t)); // initialise 0-th PCB = P_1
+  procTab[0].pid = 1;
+  procTab[0].status = STATUS_READY;
+  procTab[0].tos = (uint32_t)(&tos_P1);
+  procTab[0].ctx.cpsr = 0x50;
+  procTab[0].ctx.pc = (uint32_t)(&main_P1);
+  procTab[0].ctx.sp = procTab[0].tos;
+  procTab[0].priority = 1;
+  procTab[0].initPriority = 1;
+
+  memset(&procTab[1], 0, sizeof(pcb_t)); // initialise 1-st PCB = P_2
+  procTab[1].pid = 2;
+  procTab[1].status = STATUS_READY;
+  procTab[1].tos = (uint32_t)( &tos_P2);
+  procTab[1].ctx.cpsr = 0x50;
+  procTab[1].ctx.pc = (uint32_t)(&main_P2);
+  procTab[1].ctx.sp = procTab[1].tos;
+  procTab[1].priority = 2;
+  procTab[1].initPriority = 2;
+
+  //Set up timers
   TIMER0->Timer1Load  = 0x00100000; // select period = 2^20 ticks ~= 1 sec
   TIMER0->Timer1Ctrl  = 0x00000002; // select 32-bit   timer
   TIMER0->Timer1Ctrl |= 0x00000040; // select periodic timer
@@ -70,27 +100,6 @@ void hilevel_handler_rst(ctx_t* ctx) {
   GICD0->ISENABLER1  |= 0x00000010; // enable timer          interrupt
   GICC0->CTLR         = 0x00000001; // enable GIC interface
   GICD0->CTLR         = 0x00000001; // enable GIC distributor
-
-  for( int i = 0; i < MAX_PROCS; i++ ) {
-    procTab[ i ].status = STATUS_INVALID;
-  }
-
-  memset( &procTab[0], 0, sizeof( pcb_t ) ); // initialise 0-th PCB = P_1
-  procTab[0].pid = 1;
-  procTab[0].status = STATUS_READY;
-  procTab[0].tos = (uint32_t)(&tos_P1);
-  procTab[0].ctx.cpsr = 0x50;
-  procTab[0].ctx.pc = (uint32_t)(&main_P1);
-  procTab[0].ctx.sp = procTab[0].tos;
-
-  memset(&procTab[1], 0, sizeof(pcb_t)); // initialise 1-st PCB = P_2
-  procTab[1].pid = 2;
-  procTab[1].status = STATUS_READY;
-  procTab[1].tos = (uint32_t)( &tos_P2);
-  procTab[1].ctx.cpsr = 0x50;
-  procTab[1].ctx.pc = (uint32_t)(&main_P2);
-  procTab[1].ctx.sp = procTab[1].tos;
-
   PL011_putc(UART0, 'R', true);
   dispatch(ctx, NULL, &procTab[0]);
 
