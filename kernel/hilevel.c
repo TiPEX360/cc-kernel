@@ -35,11 +35,6 @@ void dispatch(ctx_t* ctx, pcb_t* prev, pcb_t* next) {
 }
 
 
-extern uint32_t* tos_P1;
-extern void main_P1;
-extern uint32_t* tos_P2;
-extern void main_P2;
-
 void schedule(ctx_t* ctx) {
   //Adjust current process priority
   if(executing->priority != executing->initPriority) executing->priority = executing->initPriority;
@@ -63,31 +58,67 @@ void schedule(ctx_t* ctx) {
   return;
 }
 
+extern uint32_t* tos_P1;
+extern void main_P1;
+extern uint32_t* tos_P2;
+extern void main_P2;
+extern uint32_t* tos_P3;
+extern void main_P3;
+extern uint32_t* tos_P4;
+extern void main_P4;
+
+void loadProcs() {
+  memset(&procTab[0], 0, sizeof(pcb_t)); // initialise 0-th PCB = P_1
+  procTab[0].pid = 1;
+  procTab[0].status = STATUS_READY;
+  procTab[0].tos = (uint32_t)(&tos_P3);
+  procTab[0].ctx.cpsr = 0x50;
+  procTab[0].ctx.pc = (uint32_t)(&main_P3);
+  procTab[0].ctx.sp = procTab[0].tos;
+  procTab[0].priority = 6;
+  procTab[0].initPriority = 6;
+
+  memset(&procTab[1], 0, sizeof(pcb_t)); // initialise 1-st PCB = P_2
+  procTab[1].pid = 2;
+  procTab[1].status = STATUS_READY;
+  procTab[1].tos = (uint32_t)( &tos_P4);
+  procTab[1].ctx.cpsr = 0x50;
+  procTab[1].ctx.pc = (uint32_t)(&main_P4);
+  procTab[1].ctx.sp = procTab[1].tos;
+  procTab[1].priority = 6;
+  procTab[1].initPriority = 6;
+
+  memset(&procTab[2], 0, sizeof(pcb_t)); // initialise 1-st PCB = P_2
+  procTab[2].pid = 3;
+  procTab[2].status = STATUS_READY;
+  procTab[2].tos = (uint32_t)( &tos_P1);
+  procTab[2].ctx.cpsr = 0x50;
+  procTab[2].ctx.pc = (uint32_t)(&main_P1);
+  procTab[2].ctx.sp = procTab[2].tos;
+  procTab[2].priority = 4;
+  procTab[2].initPriority = 4;
+
+  memset(&procTab[3], 0, sizeof(pcb_t)); // initialise 1-st PCB = P_2
+  procTab[3].pid = 4;
+  procTab[3].status = STATUS_READY;
+  procTab[3].tos = (uint32_t)( &tos_P2);
+  procTab[3].ctx.cpsr = 0x50;
+  procTab[3].ctx.pc = (uint32_t)(&main_P1);
+  procTab[3].ctx.sp = procTab[3].tos;
+  procTab[3].priority = 2;
+  procTab[3].initPriority = 2;
+
+  return;
+}
+
 void hilevel_handler_rst(ctx_t* ctx) {
   //Set up pcb vector
   for( int i = 0; i < MAX_PROCS; i++ ) {
     procTab[ i ].status = STATUS_INVALID;
   }
 
-  memset(&procTab[0], 0, sizeof(pcb_t)); // initialise 0-th PCB = P_1
-  procTab[0].pid = 1;
-  procTab[0].status = STATUS_READY;
-  procTab[0].tos = (uint32_t)(&tos_P1);
-  procTab[0].ctx.cpsr = 0x50;
-  procTab[0].ctx.pc = (uint32_t)(&main_P1);
-  procTab[0].ctx.sp = procTab[0].tos;
-  procTab[0].priority = 1;
-  procTab[0].initPriority = 1;
-
-  memset(&procTab[1], 0, sizeof(pcb_t)); // initialise 1-st PCB = P_2
-  procTab[1].pid = 2;
-  procTab[1].status = STATUS_READY;
-  procTab[1].tos = (uint32_t)( &tos_P2);
-  procTab[1].ctx.cpsr = 0x50;
-  procTab[1].ctx.pc = (uint32_t)(&main_P2);
-  procTab[1].ctx.sp = procTab[1].tos;
-  procTab[1].priority = 2;
-  procTab[1].initPriority = 2;
+  //Load processes into pcb table
+  loadProcs();
 
   //Set up timers
   TIMER0->Timer1Load  = 0x00100000; // select period = 2^20 ticks ~= 1 sec

@@ -28,7 +28,7 @@
 
 // Structs
 
-#define MAX_PROCS 2
+#define MAX_PROCS 10
 
 typedef int pid_t;
 

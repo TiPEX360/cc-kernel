@@ -11,8 +11,8 @@
 void main_P1() {
   while( 1 ) {
     write( STDOUT_FILENO, "P1", 2 );
-    // PL011_putc(UART0, '1', true);
+    // PL011_putc(UART0, out, true);
   }
-
+  
   exit( EXIT_SUCCESS );
 }
