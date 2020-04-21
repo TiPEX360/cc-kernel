@@ -6,6 +6,7 @@
  */
 
 #include "hilevel.h"
+#include "scheduler.h"
 
 const int PageSize = (0x00006000 / MAX_PROCS) - ((0x00006000 / MAX_PROCS) % 8) ;
 
@@ -67,47 +68,34 @@ extern void main_P3;
 extern void main_P4;
 
 void loadProcs() {
-  memset(&procTab[0], 0, sizeof(pcb_t)); // initialise 0-th PCB = P_1
-  procTab[0].pid = 1;
-  procTab[0].status = STATUS_READY;
-  procTab[0].tos = (uint32_t)(&tos_usr) - PageSize * 0;
-  procTab[0].ctx.cpsr = 0x50;
-  procTab[0].ctx.pc = (uint32_t)(&main_P3);
-  procTab[0].ctx.sp = procTab[0].tos;
-  procTab[0].priority = 6;
-  procTab[0].initPriority = 6;
+  // memset(&procTab[0], 0, sizeof(pcb_t)); // initialise 0-th PCB = P_1
+  // procTab[0].pid = 1;
+  // procTab[0].status = STATUS_READY;
+  // procTab[0].tos = (uint32_t)(&tos_usr) - PageSize * 0;
+  // procTab[0].ctx.cpsr = 0x50;
+  // procTab[0].ctx.pc = (uint32_t)(&main_P3);
+  // procTab[0].ctx.sp = procTab[0].tos;
+  // procTab[0].priority = 6;
+  // procTab[0].initPriority = 6;
 
-  memset(&procTab[1], 0, sizeof(pcb_t)); // initialise 1-st PCB = P_2
-  procTab[1].pid = 2;
-  procTab[1].status = STATUS_READY;
-  procTab[1].tos = (uint32_t)(&tos_usr) - PageSize * 1;
-  procTab[1].ctx.cpsr = 0x50;
-  procTab[1].ctx.pc = (uint32_t)(&main_P4);
-  procTab[1].ctx.sp = procTab[1].tos;
-  procTab[1].priority = 6;
-  procTab[1].initPriority = 6;
+  // memset(&procTab[1], 0, sizeof(pcb_t)); // initialise 1-st PCB = P_2
+  // procTab[1].pid = 2;
+  // procTab[1].status = STATUS_READY;
+  // procTab[1].tos = (uint32_t)(&tos_usr) - PageSize * 1;
+  // procTab[1].ctx.cpsr = 0x50;
+  // procTab[1].ctx.pc = (uint32_t)(&main_P4);
+  // procTab[1].ctx.sp = procTab[1].tos;
+  // procTab[1].priority = 6;
+  // procTab[1].initPriority = 6;
 
-  memset(&procTab[2], 0, sizeof(pcb_t)); // initialise 1-st PCB = P_2
-  procTab[2].pid = 3;
-  procTab[2].status = STATUS_READY;
-  procTab[2].tos = (uint32_t)(&tos_usr) - PageSize * 2;
-  procTab[2].ctx.cpsr = 0x50;
-  procTab[2].ctx.pc = (uint32_t)(&main_P1);
-  procTab[2].ctx.sp = procTab[2].tos;
-  procTab[2].priority = 4;
-  procTab[2].initPriority = 4;
+
+  svc_exec_handler(&main_P3);
+  svc_exec_handler(&main_P4);
 
   return;
 }
 
 void hilevel_handler_rst(ctx_t* ctx) {
-  //Set up pcb vector
-  for( int i = 0; i < MAX_PROCS; i++ ) {
-    procTab[ i ].status = STATUS_INVALID;
-  }
-
-  //Load processes into pcb table
-  loadProcs();
 
   //Set up timers
   TIMER0->Timer1Load  = 0x00100000; // select period = 2^20 ticks ~= 1 sec
@@ -121,6 +109,18 @@ void hilevel_handler_rst(ctx_t* ctx) {
   GICC0->CTLR         = 0x00000001; // enable GIC interface
   GICD0->CTLR         = 0x00000001; // enable GIC distributor
   PL011_putc(UART0, 'R', true);
+
+
+  //Set up pcb vector
+  for( int i = 0; i < MAX_PROCS; i++ ) {
+    procTab[ i ].status = STATUS_INVALID;
+  }
+
+  svc_exec_handler(&main_P3, 3);
+  svc_exec_handler(&main_P4, 3);
+
+  //TODO: call init() function here to load starting programs etc
+
   dispatch(ctx, NULL, &procTab[0]);
 
   int_enable_irq();
@@ -133,7 +133,6 @@ void hilevel_handler_irq(ctx_t* ctx) {
   uint32_t id = GICC0->IAR;
 
   if(id == GIC_SOURCE_TIMER0) {
-    PL011_putc(UART0, 'T', true);
     schedule(ctx);
     TIMER0->Timer1IntClr = 0x01;
   }
@@ -143,7 +142,49 @@ void hilevel_handler_irq(ctx_t* ctx) {
   return;
 }
 
-void hilevel_handler_svc() {
+//Move to svc file?
+int svc_exec_handler(uint32_t pc, int priority) {
+  int pid = NULL;
+  for(int i = 0; i < MAX_PROCS && pid == NULL; i++) {
+    if(procTab[i].status == STATUS_INVALID || procTab[i].status == STATUS_TERMNATED) pid = i + 1;
+  }
+
+  if(pid == NULL) return 1;
+
+  memset(&procTab[pid - 1], 0, sizeof(pcb_t));
+  procTab[pid - 1].pid = pid;
+  procTab[pid - 1].status = STATUS_READY;
+  procTab[pid - 1].tos = (uint32_t)(&tos_usr) - PageSize * (pid - 1);
+  procTab[pid - 1].ctx.cpsr = 0x50;
+  procTab[pid - 1].ctx.pc = pc;
+  procTab[pid - 1].ctx.sp = procTab[pid - 1].tos;
+  procTab[pid - 1].priority = priority;
+  procTab[pid - 1].initPriority = priority;
+
+  return 0;
+}
+
+void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
+
+
+  uint32_t *args = ctx->gpr;
+
+  switch(id) {
+    case 0x03:
+      //Fork
+      PL011_putc(UART0, 'F', true);
+      break;
+    case 0x04:
+      //Exit
+      PL011_putc(UART0, 'E', true);
+      break;
+    case 0x05:
+      svc_exec_handler((uint32_t)&args[0], 3);
+      break;
+    default:
+
+      break;
+  }
 
   return;
 }

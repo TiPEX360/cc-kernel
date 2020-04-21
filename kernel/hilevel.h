@@ -43,7 +43,7 @@ typedef enum {
 
 
 typedef struct {
-    uint32_t cpsr, pc, gpr[13], sp, lr //note reverse order
+    uint32_t cpsr, pc, gpr[13], sp, lr //note reverse order, but GPR[0] is still r0
 } ctx_t;
 
 typedef struct {
