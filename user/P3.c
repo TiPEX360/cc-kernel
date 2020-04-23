@@ -18,6 +18,8 @@ uint32_t weight( uint32_t x ) {
 }
 
 void main_P3() {
+  fork();
+
   while( 1 ) {
     write( STDOUT_FILENO, "P3", 2 );
 

@@ -67,34 +67,6 @@ extern void main_P2;
 extern void main_P3;
 extern void main_P4;
 
-void loadProcs() {
-  // memset(&procTab[0], 0, sizeof(pcb_t)); // initialise 0-th PCB = P_1
-  // procTab[0].pid = 1;
-  // procTab[0].status = STATUS_READY;
-  // procTab[0].tos = (uint32_t)(&tos_usr) - PageSize * 0;
-  // procTab[0].ctx.cpsr = 0x50;
-  // procTab[0].ctx.pc = (uint32_t)(&main_P3);
-  // procTab[0].ctx.sp = procTab[0].tos;
-  // procTab[0].priority = 6;
-  // procTab[0].initPriority = 6;
-
-  // memset(&procTab[1], 0, sizeof(pcb_t)); // initialise 1-st PCB = P_2
-  // procTab[1].pid = 2;
-  // procTab[1].status = STATUS_READY;
-  // procTab[1].tos = (uint32_t)(&tos_usr) - PageSize * 1;
-  // procTab[1].ctx.cpsr = 0x50;
-  // procTab[1].ctx.pc = (uint32_t)(&main_P4);
-  // procTab[1].ctx.sp = procTab[1].tos;
-  // procTab[1].priority = 6;
-  // procTab[1].initPriority = 6;
-
-
-  svc_exec_handler(&main_P3);
-  svc_exec_handler(&main_P4);
-
-  return;
-}
-
 void hilevel_handler_rst(ctx_t* ctx) {
 
   //Set up timers
@@ -164,8 +136,39 @@ int svc_exec_handler(uint32_t pc, int priority) {
   return 0;
 }
 
-void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
+void svc_fork_handler(ctx_t* ctx) {
+  int pid = NULL;
+  for(int i = 0; i < MAX_PROCS && pid == NULL; i++) {
+    if(procTab[i].status == STATUS_INVALID || procTab[i].status == STATUS_TERMNATED) pid = i + 1;
+  }
 
+  if(pid == NULL) {
+    ctx->gpr[0] = -1; 
+    return;
+  }
+
+  memset(&procTab[pid - 1], 0, sizeof(pcb_t));
+  procTab[pid - 1].pid = pid;
+  procTab[pid - 1].status = STATUS_READY;
+  procTab[pid - 1].tos = (uint32_t)(&tos_usr) - PageSize * (pid - 1); //Give it own stack?
+  procTab[pid - 1].priority = 3;
+  procTab[pid - 1].initPriority = 3;
+
+  procTab[pid - 1].ctx.cpsr = 0x50;
+  procTab[pid - 1].ctx.pc = ctx->pc;
+  procTab[pid - 1].ctx.gpr[0] = 0; 
+  procTab[pid - 1].ctx.sp = procTab[pid - 1].tos;
+  procTab[pid - 1].ctx.lr = ctx->lr;
+
+  for(int i = 1; i < 13; i++) procTab[pid - 1].ctx.gpr[i] = ctx->gpr[i];
+
+  memcpy(procTab[pid - 1].tos, executing->tos, PageSize); 
+
+  //Parent process return 1
+  ctx->gpr[0] = pid; return; //Is it done?
+};
+
+void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
 
   uint32_t *args = ctx->gpr;
 
@@ -173,10 +176,10 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
     case 0x03:
       //Fork
       PL011_putc(UART0, 'F', true);
+      svc_fork_handler(ctx);
       break;
     case 0x04:
       //Exit
-      PL011_putc(UART0, 'E', true);
       break;
     case 0x05:
       svc_exec_handler((uint32_t)&args[0], 3);
