@@ -88,8 +88,8 @@ void hilevel_handler_rst(ctx_t* ctx) {
     procTab[ i ].status = STATUS_INVALID;
   }
 
-  svc_exec_handler(&main_P3, 3);
-  svc_exec_handler(&main_P4, 3);
+  svc_handler_exec(&main_P3, 3);
+  svc_handler_exec(&main_P4, 3);
 
   //TODO: call init() function here to load starting programs etc
 
@@ -115,7 +115,7 @@ void hilevel_handler_irq(ctx_t* ctx) {
 }
 
 //Move to svc file?
-int svc_exec_handler(uint32_t pc, int priority) {
+int svc_handler_exec(uint32_t pc, int priority) {
   int pid = NULL;
   for(int i = 0; i < MAX_PROCS && pid == NULL; i++) {
     if(procTab[i].status == STATUS_INVALID || procTab[i].status == STATUS_TERMNATED) pid = i + 1;
@@ -136,7 +136,7 @@ int svc_exec_handler(uint32_t pc, int priority) {
   return 0;
 }
 
-void svc_fork_handler(ctx_t* ctx) {
+void svc_handler_fork(ctx_t* ctx) {
   int pid = NULL;
   for(int i = 0; i < MAX_PROCS && pid == NULL; i++) {
     if(procTab[i].status == STATUS_INVALID || procTab[i].status == STATUS_TERMNATED) pid = i + 1;
@@ -168,6 +168,10 @@ void svc_fork_handler(ctx_t* ctx) {
   ctx->gpr[0] = pid; return; //Is it done?
 };
 
+void svc_handler_exit() {
+
+}
+
 void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
 
   uint32_t *args = ctx->gpr;
@@ -175,14 +179,13 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
   switch(id) {
     case 0x03:
       //Fork
-      PL011_putc(UART0, 'F', true);
-      svc_fork_handler(ctx);
+      svc_handler_fork(ctx);
       break;
     case 0x04:
       //Exit
       break;
     case 0x05:
-      svc_exec_handler((uint32_t)&args[0], 3);
+      svc_handler_exec((uint32_t)&args[0], 3);
       break;
     default:
 
