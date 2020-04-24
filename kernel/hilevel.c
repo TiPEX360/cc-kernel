@@ -6,7 +6,6 @@
  */
 
 #include "hilevel.h"
-#include "scheduler.h"
 
 const int PageSize = (0x00006000 / MAX_PROCS) - ((0x00006000 / MAX_PROCS) % 8) ;
 
@@ -88,8 +87,8 @@ void hilevel_handler_rst(ctx_t* ctx) {
     procTab[ i ].status = STATUS_INVALID;
   }
 
-  svc_handler_exec(&main_P3, 3);
-  svc_handler_exec(&main_P4, 3);
+  newProc(&main_P3, 3);
+  newProc(&main_P4, 3);
 
   //TODO: call init() function here to load starting programs etc
 
@@ -115,7 +114,7 @@ void hilevel_handler_irq(ctx_t* ctx) {
 }
 
 //Move to svc file?
-int svc_handler_exec(uint32_t pc, int priority) {
+int newProc(uint32_t pc, int priority) {
   int pid = NULL;
   for(int i = 0; i < MAX_PROCS && pid == NULL; i++) {
     if(procTab[i].status == STATUS_INVALID || procTab[i].status == STATUS_TERMNATED) pid = i + 1;
@@ -134,6 +133,12 @@ int svc_handler_exec(uint32_t pc, int priority) {
   procTab[pid - 1].initPriority = priority;
 
   return 0;
+}
+
+void svc_handler_exec(ctx_t*ctx, uint32_t pc) {
+  ctx->pc = pc; 
+  ctx->sp = executing->tos;
+  return;
 }
 
 void svc_handler_fork(ctx_t* ctx) {
@@ -168,8 +173,9 @@ void svc_handler_fork(ctx_t* ctx) {
   ctx->gpr[0] = pid; return; //Is it done?
 };
 
-void svc_handler_exit() {
-
+void svc_handler_exit(ctx_t* ctx, status_t s) {
+  executing->status = s;
+  schedule(ctx);
 }
 
 void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
@@ -177,18 +183,25 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
   uint32_t *args = ctx->gpr;
 
   switch(id) {
+    case 0x00:
+      //Yield
+      schedule(ctx);
     case 0x03:
       //Fork
       svc_handler_fork(ctx);
       break;
     case 0x04:
       //Exit
+      svc_handler_exit(ctx, args[0]);
       break;
     case 0x05:
-      svc_handler_exec((uint32_t)&args[0], 3);
+      svc_handler_exec(ctx, args[0]);
       break;
+    case 0x08:
+      //block process
+    case 0x09:
+      //unblock all
     default:
-
       break;
   }
 
