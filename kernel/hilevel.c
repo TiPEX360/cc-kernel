@@ -36,27 +36,39 @@ void dispatch(ctx_t* ctx, pcb_t* prev, pcb_t* next) {
   return;
 }
 
-
-void schedule(ctx_t* ctx) {
-  //Adjust current process priority
+extern void lolevel_handler_rst();
+void schedule(ctx_t* ctx) { //TERMINATED PROC GETS SCHEDULED!
+  //Reset priority for process which has just been executing
   if(executing->priority != executing->initPriority) executing->priority = executing->initPriority;
 
-  //Get next priority process
   pcb_t* next = executing;
+  if(next->status == STATUS_TERMINATED) {
+    next->priority = 0;
+    next->initPriority = 0;
+  }
 
+  //Get next priority process
   for (int i = 0; i < MAX_PROCS; i++) {
     if(procTab[i].status == STATUS_READY && procTab[i].pid != executing->pid) {
       if(procTab[i].priority > next->priority) next = &procTab[i];
-      else procTab[i].priority++; //Adjust skipped process priority 
     }
   }
+  if (next->status == STATUS_TERMINATED) lolevel_handler_rst();
+
 
   //Dispatch and update status
   pcb_t* prev = executing;
   dispatch(ctx, prev, next);
-  prev->status = STATUS_READY;
+  if(prev->status == STATUS_EXECUTING) prev->status = STATUS_READY; //CHANGE HERE
   next->status = STATUS_EXECUTING;
 
+  //Adjust priorities for next time
+  for(int i = 0; i < MAX_PROCS; i++) {
+    if(procTab[i].pid != executing->pid){
+      procTab[i].priority++;
+    }
+  }
+  
   return;
 }
 
@@ -65,6 +77,8 @@ extern void main_P1;
 extern void main_P2;
 extern void main_P3;
 extern void main_P4;
+extern void main_P5;
+extern void main_P6;
 
 void hilevel_handler_rst(ctx_t* ctx) {
 
@@ -79,20 +93,17 @@ void hilevel_handler_rst(ctx_t* ctx) {
   GICD0->ISENABLER1  |= 0x00000010; // enable timer          interrupt
   GICC0->CTLR         = 0x00000001; // enable GIC interface
   GICD0->CTLR         = 0x00000001; // enable GIC distributor
-  PL011_putc(UART0, 'R', true);
-
 
   //Set up pcb vector
   for( int i = 0; i < MAX_PROCS; i++ ) {
     procTab[ i ].status = STATUS_INVALID;
   }
 
-  newProc(&main_P3, 3);
-  newProc(&main_P4, 3);
+  newProc(&main_P6, 3);
 
   //TODO: call init() function here to load starting programs etc
 
-  dispatch(ctx, NULL, &procTab[0]);
+  dispatch(ctx, NULL, &procTab[0]); //Replace with schedule?
 
   int_enable_irq();
 
@@ -117,7 +128,7 @@ void hilevel_handler_irq(ctx_t* ctx) {
 int newProc(uint32_t pc, int priority) {
   int pid = NULL;
   for(int i = 0; i < MAX_PROCS && pid == NULL; i++) {
-    if(procTab[i].status == STATUS_INVALID || procTab[i].status == STATUS_TERMNATED) pid = i + 1;
+    if(procTab[i].status == STATUS_INVALID || procTab[i].status == STATUS_TERMINATED) pid = i + 1;
   }
 
   if(pid == NULL) return 1;
@@ -144,7 +155,7 @@ void svc_handler_exec(ctx_t*ctx, uint32_t pc) {
 void svc_handler_fork(ctx_t* ctx) {
   int pid = NULL;
   for(int i = 0; i < MAX_PROCS && pid == NULL; i++) {
-    if(procTab[i].status == STATUS_INVALID || procTab[i].status == STATUS_TERMNATED) pid = i + 1;
+    if(procTab[i].status == STATUS_INVALID || procTab[i].status == STATUS_TERMINATED) pid = i + 1;
   }
 
   if(pid == NULL) {
@@ -173,8 +184,8 @@ void svc_handler_fork(ctx_t* ctx) {
   ctx->gpr[0] = pid; return; //Is it done?
 };
 
-void svc_handler_exit(ctx_t* ctx, status_t s) {
-  executing->status = s;
+void svc_handler_exit(ctx_t* ctx, status_t s) { // THIS NOT DONE PROPERLY PLS FIX
+  executing->status = STATUS_TERMINATED;
   schedule(ctx);
 }
 
@@ -199,8 +210,14 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       break;
     case 0x08:
       //block process
+      executing->status = STATUS_WAITING;
+      schedule(ctx);
     case 0x09:
       //unblock all
+      for(int i = 0; i < MAX_PROCS; i++) {
+        if(procTab[i].status == STATUS_WAITING) procTab[i].status = STATUS_READY;
+      }
+      break;
     default:
       break;
   }

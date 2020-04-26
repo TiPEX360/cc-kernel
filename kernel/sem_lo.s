@@ -23,22 +23,25 @@ sem_dec: ldrex r1, [r0]             @ atomic load semaphore value //initialize m
          cmp   r2, #0               @ check success
          bne   wait_for_update      @ wait for update if failed
          dmb                        @ ensure atomic instrs. happen before this point is passed
-         b     lr
+         mov   pc, lr 
 
-sem_inc: ldrex r1, [r0]
-         cmp   r1, #0
-         add   r1, #1
-         strex r2, r1, [r0]
-         cmp   r2, #0
-         bne   wait_for_update
-         cmp   r1, #1
-         beq   signal_update
+wait_for_update: svc #0x08             @ HOW DO WE GET BACK??
+                 b sem_dec
+
+sem_inc: ldrex r1, [r0]             @atomic load
+         add   r1, #1               @add 1 to sem
+         strex r2, r1, [r0]         @atomic store
+         cmp   r2, #0               @check if store failed
+         bne   sem_inc              @wait and retry if it did
+         cmp   r0, #1
          dmb
-         b     lr
+         bge  unwait_all
+         mov  pc, lr
 
-wait_for_update: svc #0x08             @ yield //or should it change to waiting until signal? // 
 
-signal_update: svc #0x09
+unwait_all: svc #0x09              @ HOW DO WE GET BACK??
+            mov pc, lr
+
 
 @ 2   ; Take appropriate action while waiting for semaphore to be incremented
 @     WAIT_FOR_UPDATE       ; Wait for signal to retry

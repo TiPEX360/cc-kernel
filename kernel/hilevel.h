@@ -28,14 +28,14 @@
 
 // Structs
 
-#define MAX_PROCS 3
+#define MAX_PROCS 12
 
 typedef int pid_t;
 
 typedef enum {
     STATUS_INVALID,
     STATUS_CREATED,
-    STATUS_TERMNATED,
+    STATUS_TERMINATED,
     STATUS_READY,
     STATUS_EXECUTING,
     STATUS_WAITING
