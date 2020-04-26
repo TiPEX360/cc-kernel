@@ -1,22 +1,19 @@
 #include "P6.h"
-#include "PL011.h"
 
 void pickup(sem_t *fork) {
     sem_wait(fork);
-    PL011_putc(UART0, 'P', true);
+    write(STDOUT_FILENO, "PICKUP", 6);
 }
 
 void release(sem_t *fork) {
     sem_post(fork);
-    PL011_putc(UART0, "R", true);
+    write(STDOUT_FILENO, "RELEASE", 7);
 }
 
 void eat() {
-    PL011_putc(UART0, 'E', true);
     int i,j;
-    for(i = 1; i < 0x01000000; i++) {
-        for(j = 1; j < 0x0000100; j++) {
-        }
+    for(i = 1; i < 99999; i++) {
+        write(STDOUT_FILENO, "E\n", 2);
     }
 }
 

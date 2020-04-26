@@ -197,6 +197,18 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
     case 0x00:
       //Yield
       schedule(ctx);
+      break;
+    case 0x01 : 
+      {
+        int   fd = ( int   )( args[ 0 ] );  
+        char*  x = ( char* )( args[ 1 ] );  
+        int    n = ( int   )( args[ 2 ] ); 
+        for( int i = 0; i < n; i++ ) {
+          PL011_putc( UART0, *x++, true );
+        }
+        args[ 0 ] = n;
+      }
+      break;
     case 0x03:
       //Fork
       svc_handler_fork(ctx);
