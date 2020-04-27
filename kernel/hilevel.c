@@ -227,6 +227,7 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       //block process
       executing->status = STATUS_WAITING;
       schedule(ctx);
+      break;
     case 0x09:
       //unblock all
       for(int i = 0; i < MAX_PROCS; i++) {
