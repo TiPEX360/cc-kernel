@@ -53,7 +53,7 @@ void schedule(ctx_t* ctx) { //TERMINATED PROC GETS SCHEDULED!
       if(procTab[i].priority > next->priority) next = &procTab[i];
     }
   }
-  if (next->status == STATUS_TERMINATED) lolevel_handler_rst();
+  if (next->status == STATUS_TERMINATED) lolevel_halt();
 
 
   //Dispatch and update status
@@ -99,6 +99,9 @@ void hilevel_handler_rst(ctx_t* ctx) {
     procTab[ i ].status = STATUS_INVALID;
   }
 
+  // newProc(&main_P3, 3);
+  // newProc(&main_P4, 3);
+  // newProc(&main_P5, 3);
   newProc(&main_P6, 3);
 
   //TODO: call init() function here to load starting programs etc

@@ -13,6 +13,7 @@
 .global lolevel_handler_rst
 .global lolevel_handler_irq
 .global lolevel_handler_svc
+.global lolevel_halt
 
 lolevel_handler_rst: bl    int_init                @ initialise interrupt vector table
 
@@ -68,3 +69,5 @@ lolevel_handler_svc: sub   lr, lr, #0              @ correct return address
                      ldmia sp, { r0-r12, sp, lr }^ @ restore  USR mode registers
                      add   sp, sp, #60             @ update   SVC mode SP
                      movs  pc, lr 
+
+lolevel_halt: b     .

@@ -2,18 +2,20 @@
 
 void pickup(sem_t *fork) {
     sem_wait(fork);
-    write(STDOUT_FILENO, "PICKUP", 6);
+    write(STDOUT_FILENO, "Picking up fork\n", 16);
 }
 
 void release(sem_t *fork) {
     sem_post(fork);
-    write(STDOUT_FILENO, "RELEASE", 7);
+    write(STDOUT_FILENO, "Putting down fork\n", 18);
 }
 
 void eat() {
+    int total = 0;
     int i,j;
+    write(STDOUT_FILENO, "Eating\n", 7);
     for(i = 1; i < 99999; i++) {
-        write(STDOUT_FILENO, "E\n", 2);
+        for(j = 1; j < 9999; j++) {};
     }
 }
 
