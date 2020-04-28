@@ -1,5 +1,5 @@
-#ifndef __P4_H
-#define __P4_H
+#ifndef __PHILOSOPHERS_H
+#define __PHILOSOPHERS_H
 
 #include <stdbool.h>
 #include <stddef.h>

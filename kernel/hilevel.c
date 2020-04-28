@@ -14,7 +14,8 @@ extern void main_P2;
 extern void main_P3;
 extern void main_P4;
 extern void main_P5;
-extern void main_P6;
+extern void main_philosophers;
+extern void main_console;
 
 void hilevel_handler_rst(ctx_t* ctx) {
 
@@ -37,8 +38,8 @@ void hilevel_handler_rst(ctx_t* ctx) {
 
   // newProc(&main_P3, 3);
   // newProc(&main_P4, 3);
-  // newProc(&main_P5, 3);
-  newProc(&main_P6, 3);
+  newProc(&main_philosophers, 3);
+  newProc(&main_console, 3);
 
   //TODO: call init() function here to load starting programs etc
 

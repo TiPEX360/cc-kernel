@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define MAX_PROCS 12
+#define MAX_PROCS 20
 
 typedef int pid_t;
 

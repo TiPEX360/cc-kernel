@@ -21,9 +21,10 @@ void puts( char* x, int n ) {
 void gets( char* x, int n ) {
   for( int i = 0; i < n; i++ ) {
     x[ i ] = PL011_getc( UART1, true );
-    
+
     if( x[ i ] == '\x0A' ) {
-      x[ i ] = '\x00'; break;
+      x[ i ] = '\x00'; 
+      break;
     }
   }
 }

@@ -1,4 +1,4 @@
-#include "P6.h"
+#include "philosophers.h"
 
 void pickup(sem_t *fork) {
     sem_wait(fork);
@@ -19,9 +19,9 @@ void eat() {
     }
 }
 
-void main_P6() {
-    static sem_t forks[5];
-    for(int i = 0; i < 5; i++) {
+void main_philosophers() {
+    static sem_t forks[16];
+    for(int i = 0; i < 16; i++) {
         sem_init(&forks[i], 1);
     }
 
@@ -29,11 +29,11 @@ void main_P6() {
     int left = 0; //Init left/right forks for this process
     int right = 1;
 
-    for(int i = 1; i < 5 && isParent > 0; i++) {
+    for(int i = 1; i < 16 && isParent > 0; i++) {
         isParent = fork(); //Create a child process for each philosopher
         if(isParent == 0) {
             left = i; //Change left/right forks for child process
-            right = (i+1)%5;
+            right = (i+1)%16;
         }
     }
 

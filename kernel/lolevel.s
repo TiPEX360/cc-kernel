@@ -22,7 +22,7 @@ lolevel_handler_rst: bl    int_init                @ initialise interrupt vector
                      msr   cpsr, #0xD3             @ enter SVC mode with IRQ and FIQ interrupts disabled
                      ldr   sp, =tos_svc            @ initialise SVC mode stack
                      
-                     add   sp, #68                 @ allocate room for ctx param
+                     sub   sp, sp, #68                 @ allocate room for ctx param
                      mov   r0, sp                  @ set arg0 to ctx(point to element)
                      bl    hilevel_handler_rst     @ invoke high-level C function
                                                    @ ctx is no longer blank after dispatch
