@@ -26,33 +26,5 @@
 #include "lolevel.h"
 #include     "int.h"
 
-// Structs
-
-#define MAX_PROCS 12
-
-typedef int pid_t;
-
-typedef enum {
-    STATUS_INVALID,
-    STATUS_CREATED,
-    STATUS_TERMINATED,
-    STATUS_READY,
-    STATUS_EXECUTING,
-    STATUS_WAITING
-} status_t;
-
-
-typedef struct {
-    uint32_t cpsr, pc, gpr[13], sp, lr //note reverse order, but GPR[0] is still r0
-} ctx_t;
-
-typedef struct {
-     pid_t pid; 
-     status_t status; 
-     uint32_t tos; 
-     int priority;
-     int initPriority;
-     ctx_t ctx; 
-} pcb_t;
 
 #endif

@@ -6,71 +6,7 @@
  */
 
 #include "hilevel.h"
-
-const int PageSize = (0x00006000 / MAX_PROCS) - ((0x00006000 / MAX_PROCS) % 8) ;
-
-pcb_t procTab[MAX_PROCS]; 
-pcb_t *executing = NULL;
-
-void dispatch(ctx_t* ctx, pcb_t* prev, pcb_t* next) {
-  char prev_pid = '?', next_pid = '?';
-
-  if(NULL != prev) {
-    memcpy(&prev->ctx, ctx, sizeof(ctx_t)); // preserve execution context of P_{prev}
-    prev_pid = '0' + prev->pid;
-  }
-  if(NULL != next) {
-    memcpy(ctx, &next->ctx, sizeof(ctx_t)); // restore  execution context of P_{next}
-    next_pid = '0' + next->pid;
-  }
-
-    PL011_putc(UART0, '[', true);
-    PL011_putc(UART0, prev_pid, true);
-    PL011_putc(UART0, '-', true);
-    PL011_putc(UART0, '>', true);
-    PL011_putc(UART0, next_pid, true);
-    PL011_putc(UART0, ']', true);
-
-    executing = next;                           // update   executing process to P_{next}
-
-  return;
-}
-
-extern void lolevel_handler_rst();
-void schedule(ctx_t* ctx) { //TERMINATED PROC GETS SCHEDULED!
-  //Reset priority for process which has just been executing
-  if(executing->priority != executing->initPriority) executing->priority = executing->initPriority;
-
-  pcb_t* next = executing;
-  if(next->status == STATUS_TERMINATED) {
-    next->priority = 0;
-    next->initPriority = 0;
-  }
-
-  //Get next priority process
-  for (int i = 0; i < MAX_PROCS; i++) {
-    if(procTab[i].status == STATUS_READY && procTab[i].pid != executing->pid) {
-      if(procTab[i].priority > next->priority) next = &procTab[i];
-    }
-  }
-  if (next->status == STATUS_TERMINATED) lolevel_halt();
-
-
-  //Dispatch and update status
-  pcb_t* prev = executing;
-  dispatch(ctx, prev, next);
-  if(prev->status == STATUS_EXECUTING) prev->status = STATUS_READY; //CHANGE HERE
-  next->status = STATUS_EXECUTING;
-
-  //Adjust priorities for next time
-  for(int i = 0; i < MAX_PROCS; i++) {
-    if(procTab[i].pid != executing->pid){
-      procTab[i].priority++;
-    }
-  }
-  
-  return;
-}
+#include "pcb.h"
 
 extern uint32_t* tos_usr;
 extern void main_P1;
@@ -127,71 +63,6 @@ void hilevel_handler_irq(ctx_t* ctx) {
   return;
 }
 
-//Move to svc file?
-int newProc(uint32_t pc, int priority) {
-  int pid = NULL;
-  for(int i = 0; i < MAX_PROCS && pid == NULL; i++) {
-    if(procTab[i].status == STATUS_INVALID || procTab[i].status == STATUS_TERMINATED) pid = i + 1;
-  }
-
-  if(pid == NULL) return 1;
-
-  memset(&procTab[pid - 1], 0, sizeof(pcb_t));
-  procTab[pid - 1].pid = pid;
-  procTab[pid - 1].status = STATUS_READY;
-  procTab[pid - 1].tos = (uint32_t)(&tos_usr) - PageSize * (pid - 1);
-  procTab[pid - 1].ctx.cpsr = 0x50;
-  procTab[pid - 1].ctx.pc = pc;
-  procTab[pid - 1].ctx.sp = procTab[pid - 1].tos;
-  procTab[pid - 1].priority = priority;
-  procTab[pid - 1].initPriority = priority;
-
-  return 0;
-}
-
-void svc_handler_exec(ctx_t*ctx, uint32_t pc) {
-  ctx->pc = pc; 
-  ctx->sp = executing->tos;
-  return;
-}
-
-void svc_handler_fork(ctx_t* ctx) {
-  int pid = NULL;
-  for(int i = 0; i < MAX_PROCS && pid == NULL; i++) {
-    if(procTab[i].status == STATUS_INVALID || procTab[i].status == STATUS_TERMINATED) pid = i + 1;
-  }
-
-  if(pid == NULL) {
-    ctx->gpr[0] = -1; 
-    return;
-  }
-
-  memset(&procTab[pid - 1], 0, sizeof(pcb_t));
-  procTab[pid - 1].pid = pid;
-  procTab[pid - 1].status = STATUS_READY;
-  procTab[pid - 1].tos = (uint32_t)(&tos_usr) - PageSize * (pid - 1); //Give it own stack?
-  procTab[pid - 1].priority = 3;
-  procTab[pid - 1].initPriority = 3;
-
-  procTab[pid - 1].ctx.cpsr = 0x50;
-  procTab[pid - 1].ctx.pc = ctx->pc;
-  procTab[pid - 1].ctx.gpr[0] = 0; 
-  procTab[pid - 1].ctx.sp = procTab[pid - 1].tos;
-  procTab[pid - 1].ctx.lr = ctx->lr;
-
-  for(int i = 1; i < 13; i++) procTab[pid - 1].ctx.gpr[i] = ctx->gpr[i];
-
-  memcpy(procTab[pid - 1].tos, executing->tos, PageSize); 
-
-  //Parent process return 1
-  ctx->gpr[0] = pid; return; //Is it done?
-};
-
-void svc_handler_exit(ctx_t* ctx, status_t s) { // THIS NOT DONE PROPERLY PLS FIX
-  executing->status = STATUS_TERMINATED;
-  schedule(ctx);
-}
-
 void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
 
   uint32_t *args = ctx->gpr;
@@ -239,4 +110,25 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
   }
 
   return;
+}
+
+int newProc(uint32_t pc, int priority) {
+  int pid = NULL;
+  for(int i = 0; i < MAX_PROCS && pid == NULL; i++) {
+    if(procTab[i].status == STATUS_INVALID || procTab[i].status == STATUS_TERMINATED) pid = i + 1;
+  }
+
+  if(pid == NULL) return 1;
+
+  memset(&procTab[pid - 1], 0, sizeof(pcb_t));
+  procTab[pid - 1].pid = pid;
+  procTab[pid - 1].status = STATUS_READY;
+  procTab[pid - 1].tos = (uint32_t)(&tos_usr) - PageSize * (pid - 1);
+  procTab[pid - 1].ctx.cpsr = 0x50;
+  procTab[pid - 1].ctx.pc = pc;
+  procTab[pid - 1].ctx.sp = procTab[pid - 1].tos;
+  procTab[pid - 1].priority = priority;
+  procTab[pid - 1].initPriority = priority;
+
+  return 0;
 }
