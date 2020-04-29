@@ -10,12 +10,12 @@ void svc_handler_exec(ctx_t*ctx, uint32_t pc) {
 }
 
 void svc_handler_fork(ctx_t* ctx) {
-  int pid = NULL;
-  for(int i = 0; i < MAX_PROCS && pid == NULL; i++) {
+  int pid = 0;
+  for(int i = 0; i < MAX_PROCS && pid == 0; i++) {
     if(procTab[i].status == STATUS_INVALID || procTab[i].status == STATUS_TERMINATED) pid = i + 1;
   }
 
-  if(pid == NULL) {
+  if(pid == 0) {
     ctx->gpr[0] = -1; 
     return;
   }
@@ -35,7 +35,7 @@ void svc_handler_fork(ctx_t* ctx) {
 
   for(int i = 1; i < 13; i++) procTab[pid - 1].ctx.gpr[i] = ctx->gpr[i];
 
-  memcpy(procTab[pid - 1].tos, executing->tos, PageSize); 
+  memcpy(procTab[pid - 1].tos + 4 - PageSize, executing->tos + 4 - PageSize, PageSize); //WRONG! do this descending, not ascending
 
   //Parent process return 1
   ctx->gpr[0] = pid; return; //Is it done?

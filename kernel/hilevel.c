@@ -38,7 +38,7 @@ void hilevel_handler_rst(ctx_t* ctx) {
 
   // newProc(&main_P3, 3);
   // newProc(&main_P4, 3);
-  newProc(&main_philosophers, 3);
+  // newProc(&main_philosophers, 3);
   newProc(&main_console, 3);
 
   //TODO: call init() function here to load starting programs etc
