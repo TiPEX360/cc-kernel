@@ -1,4 +1,4 @@
-#include "philosophers.h"
+#include "semphilo.h"
 
 void pickup(sem_t *fork) {
     sem_wait(fork);

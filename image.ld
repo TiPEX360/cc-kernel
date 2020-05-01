@@ -22,7 +22,7 @@ SECTIONS {
   /* allocate stack for svc mode     */
   .       = . + 0x00001000;  
   tos_svc = .;
-    /* allocate stack for user programs           */
-  .       = . + 0x00010000;  
+    /* allocate stack for user programs      //20MiB   bottom of stack is heap.  */
+  .       = . + 0x02003500;  
   tos_usr =.;
 }

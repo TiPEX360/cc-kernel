@@ -1,5 +1,6 @@
 #include "svc.h"
 #include "hilevel.h"
+#include "pipe.h"
 
 extern uint32_t tos_usr;
 
@@ -44,4 +45,57 @@ void svc_handler_fork(ctx_t* ctx) {
 void svc_handler_exit(ctx_t* ctx, status_t s) { // THIS NOT DONE PROPERLY PLS FIX
   executing->status = STATUS_TERMINATED;
   schedule(ctx);
+}
+
+void svc_handler_write(ctx_t* ctx, int fd, char *x, int n) {
+  if(fd > 2) {
+    pipe_t *pipe = NULL;
+    for(int i = 0; i < MAX_PIPES; i++) {
+      if(pipeTab[i].fd[1] == pipe->fd[1]) pipe = &pipeTab[i];
+    }
+    if(pipe == NULL) {
+      ctx->gpr[0] = 0;
+      return;
+    }
+
+    int sent = 0;
+    for(int i = 0; i < n; i++) {
+      if ((pipe->tail + 1) != pipe->head) {
+        pipe->data[pipe->tail] = x[i];
+        pipe->tail = (pipe->tail + 1) % 16;
+        sent++;
+      }
+    }
+
+    ctx->gpr[0] = sent;
+  }
+  else {
+    for( int i = 0; i < n; i++ ) {
+      PL011_putc( UART0, *x++, true );
+    }
+    ctx->gpr[0] = n;
+  }
+}
+
+void svc_handler_read(ctx_t* ctx, int fd, char *x, int n) {
+  if(fd > 2) {
+    pipe_t *pipe = NULL;
+    for(int i = 0; i < MAX_PIPES && pipe == NULL; i++) {
+      if(pipeTab[i].fd == fd) pipe = &pipeTab[i];
+    }
+    if(pipe == NULL) {
+      ctx->gpr[0] = 0;
+      return;
+    }
+
+    int i = 0;
+    while(i < n && (pipe->head != pipe->tail)) {
+      x[i] = pipe->data[i];
+      pipe->head = (pipe->head + 1) % 16;
+      
+      i++;
+    }
+    ctx->gpr[0] = i;
+    return;
+  }
 }

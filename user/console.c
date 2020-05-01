@@ -38,7 +38,7 @@ void gets( char* x, int n ) {
 extern void main_P3(); 
 extern void main_P4(); 
 extern void main_P5(); 
-extern void main_philosophers(); 
+extern void main_semphilo(); 
 
 void* load( char* x ) {
   if     ( 0 == strcmp( x, "P3" ) ) {
@@ -50,8 +50,8 @@ void* load( char* x ) {
   else if( 0 == strcmp( x, "P5" ) ) {
     return &main_P5;
   }
-    else if( 0 == strcmp( x, "philosophers" ) ) {
-    return &main_philosophers;
+    else if( 0 == strcmp( x, "semphilo" ) ) {
+    return &main_semphilo;
   }
 
   return NULL;
@@ -95,7 +95,7 @@ void main_console() {
 
     // step 1: write command prompt, then read command.
 
-    puts( "console$ ", 7 ); gets( cmd, MAX_CMD_CHARS );
+    puts( "console$ ", 9 ); gets( cmd, MAX_CMD_CHARS );
 
     // step 2: tokenize command.
 

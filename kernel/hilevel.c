@@ -7,6 +7,7 @@
 
 #include "hilevel.h"
 #include "pcb.h"
+#include "pipe.h"
 
 extern uint32_t* tos_usr;
 extern void main_P1;
@@ -34,6 +35,11 @@ void hilevel_handler_rst(ctx_t* ctx) {
   //Set up pcb vector
   for( int i = 0; i < MAX_PROCS; i++ ) {
     procTab[ i ].status = STATUS_INVALID;
+  }
+
+  for( int i = 0; i < MAX_PIPES; i++) {
+    pipeTab[i].fd[0] = -1;
+    pipeTab[i].fd[1] = -1;
   }
 
   // newProc(&main_P3, 3);
@@ -74,22 +80,15 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       schedule(ctx);
       break;
     case 0x01 : 
-      {
-        int   fd = ( int   )( args[ 0 ] );  
-        char*  x = ( char* )( args[ 1 ] );  
-        int    n = ( int   )( args[ 2 ] ); 
-        for( int i = 0; i < n; i++ ) {
-          PL011_putc( UART0, *x++, true );
-        }
-        args[ 0 ] = n;
-      }
+      svc_handler_write(ctx, (int)args[0], (char *)args[1], (int)args[2]);
+      break;
+    case 0x02:
+      svc_handler_read(ctx, (int)args[0], (char *)args[1], (int)args[2]);
       break;
     case 0x03:
-      //Fork
       svc_handler_fork(ctx);
       break;
     case 0x04:
-      //Exit
       svc_handler_exit(ctx, args[0]);
       break;
     case 0x05:
