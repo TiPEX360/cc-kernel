@@ -1,16 +1,19 @@
-#include "semphilo.h"
+#include "pipephilo.h"
 
-static void pickup(sem_t *fork) {
-    sem_wait(fork);
+void pickup(int fork[2]) {
+    int isFork = 0; 
+    while(isFork == 0) {
+        isFork = read(fork[0], "", 1);
+    }
     write(STDOUT_FILENO, "Picking up fork\n", 16);
 }
 
-static void release(sem_t *fork) {
-    sem_post(fork);
+void release(int fork[2]) {
+    write(fork[1], 0xFF, 1);
     write(STDOUT_FILENO, "Putting down fork\n", 18);
 }
 
-static void eat() {
+void eat() {
     int total = 0;
     int i,j;
     write(STDOUT_FILENO, "Eating\n", 7);
@@ -19,10 +22,11 @@ static void eat() {
     }
 }
 
-void main_semphilo() {
-    static sem_t forks[16];
+void main_philosophers() {
+    
+    int forks[16][2];
     for(int i = 0; i < 16; i++) {
-        sem_init(&forks[i], 1);
+        pipe(forks[i]); //or maybe &forks[i][0]
     }
 
     uint32_t isParent = 1;

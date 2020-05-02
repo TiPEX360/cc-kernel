@@ -51,7 +51,7 @@ void svc_handler_write(ctx_t* ctx, int fd, char *x, int n) {
   if(fd > 2) {
     pipe_t *pipe = NULL;
     for(int i = 0; i < MAX_PIPES; i++) {
-      if(pipeTab[i].fd[1] == pipe->fd[1]) pipe = &pipeTab[i];
+      if(pipeTab[i].fd[1] == fd) pipe = &pipeTab[i];
     }
     if(pipe == NULL) {
       ctx->gpr[0] = 0;
@@ -81,7 +81,7 @@ void svc_handler_read(ctx_t* ctx, int fd, char *x, int n) {
   if(fd > 2) {
     pipe_t *pipe = NULL;
     for(int i = 0; i < MAX_PIPES && pipe == NULL; i++) {
-      if(pipeTab[i].fd == fd) pipe = &pipeTab[i];
+      if(pipeTab[i].fd[0] == fd) pipe = &pipeTab[i];
     }
     if(pipe == NULL) {
       ctx->gpr[0] = 0;

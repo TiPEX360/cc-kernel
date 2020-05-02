@@ -39,6 +39,7 @@ extern void main_P3();
 extern void main_P4(); 
 extern void main_P5(); 
 extern void main_semphilo(); 
+extern void main_pipephilo(); 
 
 void* load( char* x ) {
   if     ( 0 == strcmp( x, "P3" ) ) {
@@ -51,6 +52,9 @@ void* load( char* x ) {
     return &main_P5;
   }
     else if( 0 == strcmp( x, "semphilo" ) ) {
+    return &main_semphilo;
+  }
+    else if( 0 == strcmp( x, "pipephilo" ) ) {
     return &main_semphilo;
   }
 
