@@ -17,6 +17,7 @@ void svc_handler_fork(ctx_t* ctx) {
   }
 
   if(pid == 0) {
+    svc_handler_write(ctx, 0x01, "ERROR: Max procs reached! Execution may be unpredictable beyong this point. \n", 77);
     ctx->gpr[0] = -1; 
     return;
   }

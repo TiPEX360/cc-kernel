@@ -42,8 +42,7 @@ void schedule(ctx_t* ctx) { //TERMINATED PROC GETS SCHEDULED!
       if(procTab[i].priority > next->priority) next = &procTab[i];
     }
   }
-  if (next->status == STATUS_TERMINATED) lolevel_halt();
-
+  if(next->status == STATUS_TERMINATED) lolevel_halt();
 
   //Dispatch and update status
   pcb_t* prev = executing;
