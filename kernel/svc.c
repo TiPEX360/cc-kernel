@@ -1,13 +1,13 @@
 #include "svc.h"
 #include "hilevel.h"
 #include "pipe.h"
+#include "gui.h"
 
 extern uint32_t tos_usr;
 
 void svc_handler_exec(ctx_t*ctx, uint32_t pc) {
   ctx->pc = pc; 
   ctx->sp = executing->tos;
-  return;
 }
 
 void svc_handler_fork(ctx_t* ctx) {
@@ -19,7 +19,6 @@ void svc_handler_fork(ctx_t* ctx) {
   if(pid == 0) {
     svc_handler_write(ctx, 0x01, "ERROR: Max procs reached! Execution may be unpredictable beyong this point. \n", 77);
     ctx->gpr[0] = -1; 
-    return;
   }
 
   memset(&procTab[pid - 1], 0, sizeof(pcb_t));
@@ -28,7 +27,6 @@ void svc_handler_fork(ctx_t* ctx) {
   procTab[pid - 1].tos = (uint32_t)(&tos_usr) - PageSize * (pid - 1); //Give it own stack?
   procTab[pid - 1].priority = 3;
   procTab[pid - 1].initPriority = 3;
-
   procTab[pid - 1].ctx.cpsr = 0x50;
   procTab[pid - 1].ctx.pc = ctx->pc;
   procTab[pid - 1].ctx.gpr[0] = 0; 
@@ -39,17 +37,40 @@ void svc_handler_fork(ctx_t* ctx) {
 
   memcpy(procTab[pid - 1].tos + 4 - PageSize, executing->tos + 4 - PageSize, PageSize); //WRONG! do this descending, not ascending
 
-  //Parent process return 1
-  ctx->gpr[0] = pid; return; //Is it done?
+  ctx->gpr[0] = pid; return;
 };
 
-void svc_handler_exit(ctx_t* ctx, status_t s) { // THIS NOT DONE PROPERLY PLS FIX
+void svc_handler_exit(ctx_t* ctx, status_t s) {
   executing->status = STATUS_TERMINATED;
   schedule(ctx);
 }
 
 void svc_handler_write(ctx_t* ctx, int fd, char *x, int n) {
-  if(fd > 2) {
+  switch(fd) {
+    case 0: //STDIN
+      break;
+    case 1: //STDOUT
+      {
+        for( int i = 0; i < n; i++ ) {
+          PL011_putc( UART0, *x++, true );
+        }
+        ctx->gpr[0] = n;
+      }
+      break;
+    case 2: //STDERR
+      break;
+    case 3: //GUIOUT
+      for( int i = 0; i < n; i++ ) {
+          guit_putc(*x++);
+        }
+        ctx->gpr[0] = n;
+      break;
+    default:
+      break;
+  }
+
+  //PIPE FILENO
+  if(fd > 3) {
     pipe_t *pipe = NULL;
     for(int i = 0; i < MAX_PIPES; i++) {
       if(pipeTab[i].fd[1] == fd) pipe = &pipeTab[i];
@@ -70,16 +91,10 @@ void svc_handler_write(ctx_t* ctx, int fd, char *x, int n) {
 
     ctx->gpr[0] = sent;
   }
-  else {
-    for( int i = 0; i < n; i++ ) {
-      PL011_putc( UART0, *x++, true );
-    }
-    ctx->gpr[0] = n;
-  }
 }
 
 void svc_handler_read(ctx_t* ctx, int fd, char *x, int n) {
-  if(fd > 2) {
+  if(fd > 3) {
     pipe_t *pipe = NULL;
     for(int i = 0; i < MAX_PIPES && pipe == NULL; i++) {
       if(pipeTab[i].fd[0] == fd) pipe = &pipeTab[i];

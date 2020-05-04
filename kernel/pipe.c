@@ -7,8 +7,8 @@ int pipe(int pipefd[2]) {
     pipe_t *pipe = NULL;
     for(int i = 0; i < MAX_PIPES && pipe == NULL; i++) {
         if(pipeTab[i].fd[0] != -1) {
-            pipeTab[i].fd[0] = 2*i + 3;
-            pipeTab[i].fd[1] = 2*i + 4;
+            pipeTab[i].fd[0] = 2*i + 4;
+            pipeTab[i].fd[1] = 2*i + 5;
             pipeTab[i].head = &pipeTab[i].data[0];
             pipeTab[i].tail = &pipeTab[i].data[0];
             
