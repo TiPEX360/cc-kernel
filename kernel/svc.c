@@ -61,7 +61,7 @@ void svc_handler_write(ctx_t* ctx, int fd, char *x, int n) {
       break;
     case 3: //GUIOUT
       for( int i = 0; i < n; i++ ) {
-          guit_putc(*x++);
+          gui_putc(*x++);
         }
         ctx->gpr[0] = n;
       break;
