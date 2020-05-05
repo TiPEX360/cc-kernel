@@ -8,6 +8,7 @@
 #include "hilevel.h"
 #include "pcb.h"
 #include "pipe.h"
+#include "gui.h"
 
 extern uint32_t* tos_usr;
 extern void main_P1;
@@ -19,6 +20,18 @@ extern void main_philosophers;
 extern void main_console;
 
 void hilevel_handler_rst(ctx_t* ctx) {
+  //Set up display
+  SYSCONF->CLCD      = 0x2CAC;
+  LCD->LCDTiming0    = 0x1313A4C4;
+  LCD->LCDTiming1    = 0x0505F657;
+  LCD->LCDTiming2    = 0x071F1800;
+
+  LCD->LCDUPBASE     = ( uint32_t )( &fb );
+
+  LCD->LCDControl    = 0x00000020; // select TFT display type
+  LCD->LCDControl   |= 0x00000008; // select 16BPP display mode
+  LCD->LCDControl   |= 0x00000800; // power-on LCD controller
+  LCD->LCDControl   |= 0x00000001; // enable LCD controller
 
   //Set up timers
   TIMER0->Timer1Load  = 0x00100000; // select period = 2^20 ticks ~= 1 sec
@@ -37,6 +50,7 @@ void hilevel_handler_rst(ctx_t* ctx) {
     procTab[ i ].status = STATUS_INVALID;
   }
 
+  //Set up pipes
   for( int i = 0; i < MAX_PIPES; i++) {
     pipeTab[i].fd[0] = -1;
     pipeTab[i].fd[1] = -1;

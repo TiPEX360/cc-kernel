@@ -51,11 +51,11 @@ void* load( char* x ) {
   else if( 0 == strcmp( x, "P5" ) ) {
     return &main_P5;
   }
-    else if( 0 == strcmp( x, "semphilo" ) ) {
+  else if( 0 == strcmp( x, "semphilo" ) ) {
     return &main_semphilo;
   }
-    else if( 0 == strcmp( x, "pipephilo" ) ) {
-    return &main_semphilo;
+  else if( 0 == strcmp( x, "pipephilo" ) ) {
+    return &main_pipephilo;
   }
 
   return NULL;

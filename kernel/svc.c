@@ -30,7 +30,7 @@ void svc_handler_fork(ctx_t* ctx) {
   procTab[pid - 1].ctx.cpsr = 0x50;
   procTab[pid - 1].ctx.pc = ctx->pc;
   procTab[pid - 1].ctx.gpr[0] = 0; 
-  procTab[pid - 1].ctx.sp = procTab[pid - 1].tos;
+  procTab[pid - 1].ctx.sp = procTab[pid - 1].tos - (executing->tos - ctx->sp); //+ sp!!! relative :)
   procTab[pid - 1].ctx.lr = ctx->lr;
 
   for(int i = 1; i < 13; i++) procTab[pid - 1].ctx.gpr[i] = ctx->gpr[i];
@@ -72,7 +72,7 @@ void svc_handler_write(ctx_t* ctx, int fd, char *x, int n) {
   //PIPE FILENO
   if(fd > 3) {
     pipe_t *pipe = NULL;
-    for(int i = 0; i < MAX_PIPES; i++) {
+    for(int i = 0; i < MAX_PIPES && pipe == NULL; i++) {
       if(pipeTab[i].fd[1] == fd) pipe = &pipeTab[i];
     }
     if(pipe == NULL) {
@@ -82,7 +82,7 @@ void svc_handler_write(ctx_t* ctx, int fd, char *x, int n) {
 
     int sent = 0;
     for(int i = 0; i < n; i++) {
-      if ((pipe->tail + 1) != pipe->head) {
+      if (((pipe->tail + 1) % 16)  != pipe->head) { //Didnt write t pipe properly
         pipe->data[pipe->tail] = x[i];
         pipe->tail = (pipe->tail + 1) % 16;
         sent++;
