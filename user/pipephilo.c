@@ -12,12 +12,14 @@ void pickup(int fork[2]) { //fd not assigned correctly
 void release(int fork[2]) {
     write(fork[1], 0xFF, 1);
     write(STDOUT_FILENO, "Putting down fork\n", 18);
+    write(STDGUI_FILENO, "Putting down fork\n", 18);
 }
 
 void eat() {
     int total = 0;
     int i,j;
     write(STDOUT_FILENO, "Eating\n", 7);
+    write(STDGUI_FILENO, "Eating\n", 7);
     for(i = 1; i < 99999; i++) {
         for(j = 1; j < 9999; j++) {};
     }

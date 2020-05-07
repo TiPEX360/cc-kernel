@@ -45,6 +45,9 @@ void hilevel_handler_rst(ctx_t* ctx) {
   GICC0->CTLR         = 0x00000001; // enable GIC interface
   GICD0->CTLR         = 0x00000001; // enable GIC distributor
 
+  //Paint background
+  // paintBackground();
+
   //Set up pcb vector
   for( int i = 0; i < MAX_PROCS; i++ ) {
     procTab[ i ].status = STATUS_INVALID;
@@ -109,12 +112,12 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
       svc_handler_exec(ctx, args[0]);
       break;
     case 0x08:
-      //block process
+      //wait process
       executing->status = STATUS_WAITING;
       schedule(ctx);
       break;
     case 0x09:
-      //unblock all
+      //unwait all
       for(int i = 0; i < MAX_PROCS; i++) {
         if(procTab[i].status == STATUS_WAITING) procTab[i].status = STATUS_READY;
       }

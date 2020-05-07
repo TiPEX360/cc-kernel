@@ -3,7 +3,7 @@
 
 #include "hilevel.h"
 
-uint16_t fb[800][600];
+uint16_t fb[600][800];
 
 void gui_putc(char x);
 
