@@ -9,6 +9,7 @@
 #include "pcb.h"
 #include "pipe.h"
 #include "gui.h"
+#include "outaccurate.h"
 
 extern uint32_t* tos_usr;
 extern void main_P1;
@@ -46,7 +47,8 @@ void hilevel_handler_rst(ctx_t* ctx) {
   GICD0->CTLR         = 0x00000001; // enable GIC distributor
 
   //Paint background
-  // paintBackground();
+  uint16_t tempData[4] = {0x001F, 0x0360, 0x001F, 0x0360};
+  paintSprite(800, 600, 0, 0, background);
 
   //Set up pcb vector
   for( int i = 0; i < MAX_PROCS; i++ ) {

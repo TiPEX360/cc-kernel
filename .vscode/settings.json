@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "pipe.h": "c",
+        "pcb.h": "c"
+    }
+}

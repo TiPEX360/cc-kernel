@@ -1,11 +1,10 @@
 #include "gui.h"
 #include "font8x8_basic.h"
 #include "pcb.h"
+
 // #include "backgeound.h"
 
 uint16_t fb[600][800];
-// uint16_t bg[600][800] = background;
-
 
 typedef struct {
     int x;
@@ -16,13 +15,32 @@ typedef struct {
 
 cursor_t cursor = {0, 0, 40, 40};
 
-// void paintBackground() {
-//     for(int y = 0; y < 600; y++) {
-//         for (int x = 0; x < 800; x++) {
-//             fb[y][x] = bg[y][x];
-//         }
-//     }
-// }
+uint16_t rgbtobgr(uint16_t x) {
+    uint16_t new;
+    // new = x & 0x001F << 10;
+    // new |= x & 0x0360;
+    // new |= x & 0x7600 >> 10;
+    new = 0x0000;
+    new |= (x & 0x001F) << 10;
+    new |= (x & 0x03E0);
+    new |= (x & 0x7C00) >> 10;
+    return new;
+}
+
+void paintSprite(int sizeX, int sizeY, int posX, int posY, uint16_t *buffer) {
+    uint16_t pixel;
+    int i = 0;
+    for(int y = 0; y < sizeY; y++) {
+        for (int x = 0; x < sizeX; x++) {
+            //pixel = ((uint16_t)buffer[x*2] << 8) | (uint16_t)buffer[x*2+1];
+            // pixel = ((0xFFFF & buffer[i*2]) << 0x8) | buffer[i*2+1];
+            //pixel = (uint16_t)buffer[x*2];
+            pixel = buffer[i];
+            fb[y + posY][x + posX] = rgbtobgr(pixel);
+            i++;
+        }
+    }
+}
 
 void gui_putc(char x) {
     if(x == 10) {
