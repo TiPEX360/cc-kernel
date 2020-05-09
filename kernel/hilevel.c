@@ -113,6 +113,12 @@ void hilevel_handler_svc(ctx_t* ctx, uint32_t id) {
     case 0x05:
       svc_handler_exec(ctx, args[0]);
       break;
+    case 0x06:
+      svc_handler_kill(ctx, args[0], args[1]);
+      break;
+    case 0x07:
+      svc_handler_nice(ctx, args[0], args[1]);
+      break;
     case 0x08:
       //wait process
       executing->status = STATUS_WAITING;

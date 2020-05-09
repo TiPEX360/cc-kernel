@@ -13,4 +13,8 @@ void svc_handler_write(ctx_t *ctx, int fd, char *x, int n);
 
 void svc_handler_read(ctx_t* ctx, int fd, char *x, int n);
 
+void svc_handler_nice(ctx_t* ctx, int pid, int x);
+
+void svc_handler_kill(ctx_t* ctx, int pid, int x);
+
 #endif

@@ -41,8 +41,24 @@ void svc_handler_fork(ctx_t* ctx) {
 };
 
 void svc_handler_exit(ctx_t* ctx, status_t s) {
-  executing->status = STATUS_TERMINATED;
-  schedule(ctx);
+      executing->status = STATUS_TERMINATED;
+      schedule(ctx);
+}
+
+void svc_handler_kill(ctx_t* ctx, int pid, int x) {
+  switch(x) {
+    case 0x00:
+      procTab[pid - 1].status = STATUS_TERMINATED;
+      schedule(ctx);
+      break;
+    default:
+      break;
+  }
+}
+
+void svc_handler_nice(ctx_t* ctx, int pid, int x) {
+  procTab[pid - 1].initPriority = x;
+  procTab[pid - 1].priority = x;
 }
 
 void svc_handler_write(ctx_t* ctx, int fd, char *x, int n) {
