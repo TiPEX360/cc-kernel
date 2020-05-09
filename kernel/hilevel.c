@@ -8,8 +8,8 @@
 #include "hilevel.h"
 #include "pcb.h"
 #include "pipe.h"
-#include "gui.h"
-#include "fresh.h"
+#include "gui.h" 
+#include "background.h"
 
 extern uint32_t* tos_usr;
 extern void main_P1;

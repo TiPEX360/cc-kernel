@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "pipe.h": "c",
-        "pcb.h": "c"
+        "pcb.h": "c",
+        "hilevel.h": "c"
     }
 }

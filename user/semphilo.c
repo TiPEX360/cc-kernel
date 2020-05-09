@@ -3,17 +3,20 @@
 static void pickup(sem_t *fork) {
     sem_wait(fork);
     write(STDOUT_FILENO, "Picking up fork\n", 16);
+    write(STDGUI_FILENO, "Picking up fork\n", 16);
 }
 
 static void release(sem_t *fork) {
     sem_post(fork);
     write(STDOUT_FILENO, "Putting down fork\n", 18);
+    write(STDGUI_FILENO, "Putting down fork\n", 18);
 }
 
 static void eat() {
     int total = 0;
     int i,j;
     write(STDOUT_FILENO, "Eating\n", 7);
+    write(STDGUI_FILENO, "Eating\n", 7);
     for(i = 1; i < 99999; i++) {
         for(j = 1; j < 9999; j++) {};
     }

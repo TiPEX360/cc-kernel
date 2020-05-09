@@ -1,26 +1,22 @@
 #include "gui.h"
 #include "font8x8_basic.h"
 #include "pcb.h"
-
-// #include "backgeound.h"
+#include "background.h"
 
 uint16_t fb[600][800];
 
 typedef struct {
-    int x;
-    int y;
+    int col;
+    int line;
     int marginLeft;
     int marginTop;
+    int spacing;
 } cursor_t;
 
-cursor_t cursor = {0, 0, 40, 40};
+cursor_t cursor = {0, 0, 83, 130, 3};
 
 uint16_t rgbtobgr(uint16_t x) {
-    uint16_t new;
-    // new = x & 0x001F << 10;
-    // new |= x & 0x0360;
-    // new |= x & 0x7600 >> 10;
-    new = 0x0000;
+    uint16_t new = 0x0000;
     new |= (x & 0x001F) << 10;
     new |= (x & 0x03E0);
     new |= (x & 0x7C00) >> 10;
@@ -42,13 +38,22 @@ void paintSprite(int sizeX, int sizeY, int posX, int posY, uint16_t *buffer) {
     }
 }
 
+void printConsole(char x) {
+        if(cursor.line > 35) clear();
+        int posX = cursor.marginLeft + (cursor.col*8);
+        int posY = cursor.marginTop + cursor.line*8 + cursor.spacing;
+        cursor.col = (cursor.col + 1) % 40;
+        if(cursor.col == 0) cursor.line++;
+        printChar(x, posY, posX, 0x656F);
+}
+
 void gui_putc(char x) {
     if(x == 10) {
-        cursor.y++;
-        cursor.x = 0;
+        cursor.line++;
+        cursor.col = 0;
     }
     else {
-        if(cursor.x == 0) {
+        if(cursor.col == 0) {
             char prefix[3];
             itoa(prefix, executing->pid);
             printConsole(prefix[0]);
@@ -59,14 +64,6 @@ void gui_putc(char x) {
     }
 }
 
-void printConsole(char x) {
-        int posX = cursor.marginLeft + (cursor.x*8);
-        int posY = cursor.marginTop + cursor.y*8;
-        cursor.x = (cursor.x + 1) % 40;
-        if(cursor.x == 0) cursor.y++;
-        //if(posY > 40) clear();
-        printChar(x, posY, posX, 0x7FFF);
-}
 
 void printChar(char x, int posY, int posX, uint16_t color) {
 	unsigned char *glyph=font8x8_basic[x];
@@ -80,9 +77,7 @@ void printChar(char x, int posY, int posX, uint16_t color) {
 }
 
 void clear() {
-    for(int y = 0; y < 320; y++) {
-        for(int x = 0; x < 320; x++) {
-            fb[y][x] = 0x0000;
-        }
-    }
+    cursor.col = 0;
+    cursor.line = 0;
+    paintSprite(800, 600, 0, 0, background);
 }
